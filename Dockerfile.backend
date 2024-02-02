@@ -1,0 +1,20 @@
+# Wähle ein offizielles Python-Image als Basis
+FROM python:3.11
+
+# Setze das Arbeitsverzeichnis im Container
+WORKDIR /code
+
+# Kopiere die Anforderungen und installiere die Abhängigkeiten
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Kopiere Hauptscript und backend-Ordner in den Container
+COPY main.py /code/
+COPY .env /code/
+COPY ./backend /code/backend
+
+# Setze die Umgebungsvariablen für FastAPI
+ENV PYTHONUNBUFFERED=1
+
+# Befehl, um FastAPI via Uvicorn zu starten
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--reload"]

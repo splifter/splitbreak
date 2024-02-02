@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitbreak</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Splitbreak</h1>
+    <form id="expense-form">
+        CSV-Datei: <input accept=".csv" id="csvFile" type="file"><br>
+        Benutzer-IDs: <input type="text" id="userIds" placeholder="ID1,ID2,ID3"><br>
+        Anteile: <input type="text" id="userShares" placeholder="0.5,0.3,0.2"><br>
+    <input type="submit" value="Expenses hochladen">
+    </form>
+    <div id="response"></div>
+    <script src="script.js"></script>
+</body>
+</html>

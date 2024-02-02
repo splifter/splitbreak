@@ -1,0 +1,17 @@
+# Nutze die offizielle Node.js 14 Image als Basis
+FROM node:14
+
+# Setze das Arbeitsverzeichnis im Container
+WORKDIR /code/frontend
+
+# Kopiere package.json und package-lock.json
+COPY frontend/package*.json ./
+
+# Installiere Node.js Abhängigkeiten
+RUN npm install
+
+# Bundle Frontend-Assets
+COPY frontend/ .
+
+# Der Befehl, um das Frontend zu starten
+CMD ["npm", "start"]
