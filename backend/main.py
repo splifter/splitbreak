@@ -1,9 +1,10 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from typing import List
 import subprocess
-import os
-import shutil
+import csv
+from datetime import datetime
 
 app = FastAPI()
 
@@ -16,44 +17,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ExpenseItem(BaseModel):
+    description: str
+    date: str
+    cost: float
 
-@app.post("/upload-csv/")
-async def create_upload_file(
-        file: UploadFile = File(...),
-        user_ids: str = Form(...),
-        user_shares: str = Form(...),
-        # Fügen Sie weitere Felder wie benötigt hinzu
-        consumer_key: str = Form(None),
-        consumer_secret: str = Form(None),
-        api_key: str = Form(None),
-        group_id: str = Form(None)
-):
-    # CSV in temporäre Datei speichern
-    temp_filename = "temp.csv"
-    with open(temp_filename, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+class Expenses(BaseModel):
+    expenses: List[ExpenseItem]
+    user_ids: str
+    user_shares: str
 
-    # Pfad zu deinem Python-Skript (anpassen)
-    path_to_script = "main.py"
+def reformateDate(date: str) -> str:
+    old_datestring = datetime.strptime(date, "%Y-%m-%d")
+    return datetime.strftime(old_datestring, "%d.%m.%Y")
 
-    # Linux/Mac: Verwendung von 'python3' könnte erforderlich sein
-    command = [
-        'python', path_to_script,
-        '--csv', temp_filename,
-        '--user_ids', *user_ids.split(','),
-        '--user_shares', *user_shares.split(','),
-    ]
+@app.post("/upload-data/")
+async def upload_data(expenses: Expenses):
+    # CSV-Dateiname definieren
+    temp_filename = "expenses.csv"
 
-    # Füge zusätzliche Konfigurationen nur hinzu, wenn sie vorhanden sind
-    if consumer_key: command.extend(['--consumer_key', consumer_key])
-    if consumer_secret: command.extend(['--consumer_secret', consumer_secret])
-    if api_key: command.extend(['--api_key', api_key])
-    if group_id: command.extend(['--group_id', group_id])
+    # CSV-Datei aus den eingegebenen Daten erstellen
+    try:
+        with open(temp_filename, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["cost", "description", "date"])
+            for expense in expenses.expenses:
+                writer.writerow([expense.cost, expense.description, reformateDate(expense.date)])
 
-    # Starte das Python-Skript mit den übergebenen Argumenten
-    process = subprocess.run(command, capture_output=True, text=True)
+        # Pfad zu Ihrem Python-Skript (anpassen)
+        path_to_script = "/code/main.py"  # Pfad ggf. anpassen
 
-    if process.returncode != 0:
-        raise HTTPException(status_code=500, detail=process.stderr)
+        # Befehl zum Aufrufen des Python-Skripts mit subprocess
+        command = [
+            'python', path_to_script,
+            '--csv', temp_filename,
+            '--user_ids', *expenses.user_ids.split(","),
+            '--user_shares', *expenses.user_shares.split(","),
+        ]
 
-    return {"filename": file.filename, "message": "File processed successfully", "output": process.stdout}
+        print(f'Running command: {" ".join(command)}')
+
+        # Starte das Python-Skript mit den übergebenen Argumenten
+        process = subprocess.run(command, capture_output=True, text=True)
+        print(f"Return Code: {process.returncode}")
+        print(f"Standard Output: {process.stdout}")
+        print(f"Standard Error: {process.stderr}")
+
+        if process.returncode != 0:
+            raise HTTPException(status_code=500, detail=process.stderr)
+
+        return {"message": "Data processed successfully", "output": process.stdout}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
