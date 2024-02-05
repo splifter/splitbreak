@@ -5,6 +5,7 @@ from typing import List
 import subprocess
 import csv
 from datetime import datetime
+import os
 
 app = FastAPI()
 
@@ -17,19 +18,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class ExpenseItem(BaseModel):
     description: str
     date: str
     cost: float
+
 
 class Expenses(BaseModel):
     expenses: List[ExpenseItem]
     user_ids: str
     user_shares: str
 
+
 def reformateDate(date: str) -> str:
     old_datestring = datetime.strptime(date, "%Y-%m-%d")
     return datetime.strftime(old_datestring, "%d.%m.%Y")
+
 
 @app.post("/upload-data/")
 async def upload_data(expenses: Expenses):
@@ -45,7 +50,7 @@ async def upload_data(expenses: Expenses):
                 writer.writerow([expense.cost, expense.description, reformateDate(expense.date)])
 
         # Pfad zu Ihrem Python-Skript (anpassen)
-        path_to_script = "/code/main.py"  # Pfad ggf. anpassen
+        path_to_script = f"{os.path.dirname(os.path.dirname(__file__))}/main.py"  # Pfad ggf. anpassen
 
         # Befehl zum Aufrufen des Python-Skripts mit subprocess
         command = [
