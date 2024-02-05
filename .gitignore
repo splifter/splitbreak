@@ -2,6 +2,7 @@
 /.idea
 /.venv
 /frontend/node_modules/
+/expenses.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
